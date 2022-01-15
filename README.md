@@ -1,7 +1,6 @@
 # Covid Tracking App
-[covid-tracking-app](https://devin-covid-tracker.netlify.app/) 
-![image](https://user-images.githubusercontent.com/66978846/149637438-bbcfcb9c-496a-4e75-b20f-e67130892ac9.png)
-
+You can access the site here [covid-tracking-app](https://devin-covid-tracker.netlify.app/) for instructions view below.
+![image](https://user-images.githubusercontent.com/66978846/149637454-51dd051d-b412-49b2-a795-55fc9bf5d929.png)
 
 ## Scripts
 
