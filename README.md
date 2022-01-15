@@ -1,3 +1,8 @@
+# Covid Tracking App
+[covid-tracking-app](https://devin-covid-tracker.netlify.app/) 
+![image](https://user-images.githubusercontent.com/66978846/149637438-bbcfcb9c-496a-4e75-b20f-e67130892ac9.png)
+
+
 ## Scripts
 
 In the project directory, you can run:
