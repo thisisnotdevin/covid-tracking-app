@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 import numeral from "numeral";
 
+// customize configuration according to the options available on chartjs documentation
 const options = {
+  // dont want legend to display
   legend: {
     display: false,
   },
@@ -17,7 +19,7 @@ const options = {
     intersect: false,
     callbacks: {
       label: function (tooltipItem, data) {
-        return numeral(tooltipItem.value).format("+0,0");
+        return numeral(tooltipItem.value).format("+0,");
       },
     },
   },
@@ -33,11 +35,11 @@ const options = {
     ],
     yAxes: [
       {
+        // don't show y axis gridlines
         gridLines: {
           display: false,
         },
         ticks: {
-          // Include a dollar sign in the ticks
           callback: function (value, index, values) {
             return numeral(value).format("0a");
           },
@@ -47,63 +49,70 @@ const options = {
   },
 };
 
-const buildChartData = (data, casesType) => {
-
-  let chartData = [];
-  let lastDataPoint;
-  for (let date in data.cases) {
-    if (lastDataPoint) {
-      let newDataPoint = {
-        x: date,
-        y: data[casesType][date] - lastDataPoint,
-      };
-      chartData.push(newDataPoint);
-    }
-    lastDataPoint = data[casesType][date];
-  }
-  return chartData;
-  
+const casesTypeColors = {
+  // this is a constant mappings of casesType: cases, recovered, and deaths to their individual assigned color
+  cases: {
+    hex: "#FB4443",
+  },
+  recovered: {
+    hex: "#7DD71D",
+  },
+  deaths: {
+    hex: "#CC1034",
+  },
 };
 
-function LineGraph({ casesType }) {
+function LineGraph({ casesType = "cases", ...props }) {
+  // state
   const [data, setData] = useState({});
 
-  useEffect(() => {
-    const fetchData = async () => {
-    await fetch("https://disease.sh/v3/covid-19/historical/all?lastdays=120")
-    .then((response) => {
-        return response.json();
-    })
-    .then((data) => {
-        let chartData = buildChartData(data, casesType);
-        setData(chartData);
-        console.log(chartData);
-        // buildChart(chartData);
-    });
-};
+  // function to process data returned from API
+  const buildChartData = (data, casesType = "cases") => {
+    const chartData = [];
+    let lastDataPoint;
 
-    fetchData();
+    // process data to desired format
+    for (let date in data[casesType]) {
+      if (lastDataPoint) {
+        const newDataPoint = {
+          x: date,
+          y: data[casesType][date] - lastDataPoint,
+        };
+        chartData.push(newDataPoint);
+      }
+      lastDataPoint = data[casesType][date];
+    }
+    return chartData;
+  };
+
+  // init code
+  useEffect(() => {
+    fetch("https://disease.sh/v3/covid-19/historical/all?lastdays=120")
+      .then((response) => response.json())
+      .then((data) => {
+        const chartData = buildChartData(data, casesType);
+        setData(chartData);
+      });
   }, [casesType]);
 
   return (
-
-    <div>
+    <div className={props.className}>
+      {/* data? is optional chaining feature. handles error and returns undefined if data does not exist. the original way to do this would be data && data.length > 0 */}
       {data?.length > 0 && (
         <Line
+          options={options} // configurations for Line. read Chart.js documentation for more info
           data={{
             datasets: [
               {
-            backgroundColor: "rgba(204, 16, 52, 0.5)",
-            borderColor: "#CC1034",
-            data: data,
+                backgroundColor: casesTypeColors[casesType].hex,
+                // borderColor: casesTypeColors[casesType].hex,
+                data: data,
               },
             ],
           }}
-          options={options}
         />
       )}
     </div>
-
   );
 }
 
