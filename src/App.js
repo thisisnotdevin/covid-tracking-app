@@ -1,176 +1,138 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import "./App.css";
 import {
+  MenuItem,
   FormControl,
   Select,
-  MenuItem,
   Card,
   CardContent,
 } from "@material-ui/core";
-// React componenets start with Capital letter
 import InfoBox from "./InfoBox";
-import Map from "./Map";
-import Table from "./Table";
 import LineGraph from "./LineGraph";
-import "./App.css";
-import { sortData, prettyPrintStat } from "./utils"; // export returns an object; inside this object contains multiple keys to the function you wrote
+import Table from "./Table";
+import { sortData, prettyPrintStat } from "./util";
+import numeral from "numeral";
+import Map from "./Map";
 import "leaflet/dist/leaflet.css";
 
-// App is a React component as well which is rendered by index.js
-function App() {
-  // React useState hook --> state management
-
-  const [countries, setCountries] = useState([]); // countries is an array that stores a list of objects which contain mappings of (name -> country) AND (value -> country-iso2)
-
-  const [country, setCountry] = useState("worldwide"); // keep track of current selected country from dropdown list; default worldwide
-
-  const [countryInfo, setCountryInfo] = useState({}); // data based of current country
-  const [tableData, setTableData] = useState([]);
-  const [mapCenter, setMapCenter] = useState([25.662357, -25.4796]);
-  const [mapZoom, setMapZoom] = useState(3);
+const App = () => {
+  const [country, setInputCountry] = useState("worldwide");
+  const [countryInfo, setCountryInfo] = useState({});
+  const [countries, setCountries] = useState([]);
   const [mapCountries, setMapCountries] = useState([]);
+  const [tableData, setTableData] = useState([]);
   const [casesType, setCasesType] = useState("cases");
+  const [mapCenter, setMapCenter] = useState({ lat: 34.80746, lng: -40.4796 });
+  const [mapZoom, setMapZoom] = useState(3);
 
-  // init code
   useEffect(() => {
     fetch("https://disease.sh/v3/covid-19/all")
       .then((response) => response.json())
-      .then((data) => setCountryInfo(data));
+      .then((data) => {
+        setCountryInfo(data);
+      });
   }, []);
 
-  // React useEffect hook
-  // code inside anonymous func will run only once when the component loads AND if there's additional state in hook arg
   useEffect(() => {
-    // async -> send a request, wait for it in a non-blocking way, then do something with the info
     const getCountriesData = async () => {
-      // pull data(request object) from api service end point
-      await fetch("https://disease.sh/v3/covid-19/countries")
-        .then((response) => response.json()) // convert res obj to json type
+      fetch("https://disease.sh/v3/covid-19/countries")
+        .then((response) => response.json())
         .then((data) => {
-          // an array of country objects: 2 mappings: name and value
           const countries = data.map((country) => ({
-            name: country.country, // United States
-            value: country.countryInfo.iso2, // US
+            name: country.country,
+            value: country.countryInfo.iso2,
           }));
-
-          const sortedData = sortData(data);
-          // call function to change state instead of using assignment operator
+          let sortedData = sortData(data);
           setCountries(countries);
-          setTableData(sortedData);
           setMapCountries(data);
+          setTableData(sortedData);
         });
     };
 
     getCountriesData();
   }, []);
 
-  // this func is called by the event listener when the click event for the select element is triggered
-  const onCountryChange = async (event) => {
-    // get the value of the element that triggered the event
-    const countryCode = event.target.value;
+  console.log(casesType);
 
-    // pull info from API service
+  const onCountryChange = async (e) => {
+    const countryCode = e.target.value;
+
     const url =
       countryCode === "worldwide"
         ? "https://disease.sh/v3/covid-19/all"
-        : `https://disease.sh/v3/covid-19/countries/${countryCode}`; // determine which API endpoint to use
-
+        : `https://disease.sh/v3/covid-19/countries/${countryCode}`;
     await fetch(url)
       .then((response) => response.json())
       .then((data) => {
-        setCountry(countryCode);
-        setCountryInfo(data); // all of the data from the current country response
-
-        if (countryCode === "worldwide") {
-          setMapCenter([25.662357, -25.4796]);
-          setMapZoom(3);
-        } else {
-          setMapCenter([data.countryInfo.lat, data.countryInfo.long]);
-          setMapZoom(4);
-        }
+        setInputCountry(countryCode);
+        setCountryInfo(data);
+        setMapCenter([data.countryInfo.lat, data.countryInfo.long]);
+        setMapZoom(4);
       });
   };
 
   return (
     <div className="app">
       <div className="app__left">
-        {/* <--- Components ---> */}
-        {/* Title and Select input dropdown */}
         <div className="app__header">
-          <h1>Covid-19-Tracker</h1>
-
+          <h1>COVID-19 Tracker</h1>
           <FormControl className="app__dropdown">
-            {/* variant property is the look for the select box; value property is the value that the box display. we want the box to display the current selected country */}
-            {/* onChange property is the event listener. we need to add event listener to this select element to keep track of selected country */}
             <Select
               variant="outlined"
-              onChange={onCountryChange}
               value={country}
+              onChange={onCountryChange}
             >
               <MenuItem value="worldwide">Worldwide</MenuItem>
-
-              {/* 1. loop through all the countries that was pulled in from api service in useEffect hook */}
-              {/* 2. return a MenuItem component for each country */}
-              {/* JS code in HTML has to be in curly braces */}
               {countries.map((country) => (
-                // value property is to assign a name to identify this particular element, when when it is selected you know which one
                 <MenuItem value={country.value}>{country.name}</MenuItem>
               ))}
             </Select>
           </FormControl>
         </div>
-
-        {/* Infoboxes */}
         <div className="app__stats">
-          {/* 3 of the same React components but with different React PROPS passed into it to make each component unique */}
-          {/* we defines the props name and how many props we want */}
-          {/* React components are SELF CLOSING */}
           <InfoBox
+            onClick={(e) => setCasesType("cases")}
+            title="Coronavirus Cases"
             isRed
             active={casesType === "cases"}
-            onClick={(e) => setCasesType("cases")}
-            title="Coronavirus cases"
             cases={prettyPrintStat(countryInfo.todayCases)}
-            total={prettyPrintStat(countryInfo.cases)}
+            total={numeral(countryInfo.cases).format("0.0a")}
           />
           <InfoBox
-            active={casesType === "recovered"}
             onClick={(e) => setCasesType("recovered")}
             title="Recovered"
+            active={casesType === "recovered"}
             cases={prettyPrintStat(countryInfo.todayRecovered)}
-            total={prettyPrintStat(countryInfo.recovered)}
+            total={numeral(countryInfo.recovered).format("0.0a")}
           />
           <InfoBox
-            isRed
-            active={casesType === "deaths"}
             onClick={(e) => setCasesType("deaths")}
             title="Deaths"
+            isRed
+            active={casesType === "deaths"}
             cases={prettyPrintStat(countryInfo.todayDeaths)}
-            total={prettyPrintStat(countryInfo.deaths)}
+            total={numeral(countryInfo.deaths).format("0.0a")}
           />
         </div>
-
-        {/* Map */}
         <Map
-          casesType={casesType}
           countries={mapCountries}
+          casesType={casesType}
           center={mapCenter}
           zoom={mapZoom}
         />
       </div>
-
       <Card className="app__right">
         <CardContent>
-          {/* Table */}
-          <h3>Live Cases by Country</h3>
-          <Table countries={tableData} />
-
-          {/* Line Graph */}
-          <h3 className="app__graphTitle ">Worldwide new {casesType}</h3>
-          <LineGraph className="app__graph" casesType={casesType} />
+          <div className="app__information">
+            <h3>Live Cases by Country</h3>
+            <Table countries={tableData} />
+            <h3>Worldwide new {casesType}</h3>
+            <LineGraph casesType={casesType} />
+          </div>
         </CardContent>
       </Card>
     </div>
   );
-}
+};
 
 export default App;
